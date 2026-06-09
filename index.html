@@ -1,364 +1,356 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Search, Filter, Package, Clock, AlertCircle, CheckCircle, BarChart3, ListFilter, Users, TrendingUp, RefreshCw } from 'lucide-react';
-import { 
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid
-} from 'recharts';
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Amostras P&D</title>
+  
+  <!-- Tailwind CSS para Estilização -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Bibliotecas do React e Babel (Tradutor) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Recharts (Gráficos) -->
+  <script src="https://unpkg.com/prop-types@15.7.2/prop-types.min.js"></script>
+  <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans">
+  
+  <!-- Onde a nossa aplicação vai ser renderizada -->
+  <div id="root"></div>
 
-// LINK DA API DO GOOGLE APPS SCRIPT
-const URL_DA_SUA_API = 'https://script.google.com/macros/s/AKfycbxkyuluhdtx97TD0f-qwiDxjc370xXHM8kyr8RLByHdfrPmfXKBsuWVnlwg7LkA22uN/exec';
+  <!-- Script da Aplicação -->
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+    const { PieChart, Pie, Cell, ResponsiveContainer, Tooltip: RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } = window.Recharts;
 
-const SEGMENTOS = ['AROMAS DOCE', 'AROMAS SALGADOS', 'NUTRACEUTICOS', 'SORVETES', 'CÁRNEOS', 'LÁCTEOS', 'NUTRIÇÃO ANIMAL'];
-const STATUS_LIST = ['OP Aberta', 'Finalizando', 'Aguardando MP'];
+    // --- ÍCONES (Convertidos para SVG nativo para funcionar sem instalar pacotes) ---
+    const IconSearch = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/></svg>;
+    const IconFilter = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+    const IconPackage = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>;
+    const IconClock = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+    const IconAlertCircle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+    const IconCheckCircle = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>;
+    const IconBarChart3 = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><rect width="4" height="7" x="7" y="10" rx="1"/><rect width="4" height="12" x="15" y="5" rx="1"/></svg>;
+    const IconListFilter = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/></svg>;
+    const IconUsers = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+    const IconTrendingUp = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
+    const IconRefreshCw = ({className}) => <svg className={className} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
 
-const STATUS_COLORS = {
-  'OP Aberta': '#3B82F6',
-  'Finalizando': '#10B981',
-  'Aguardando MP': '#F59E0B'
-};
+    // --- CONFIGURAÇÕES ---
+    const URL_DA_SUA_API = 'https://script.google.com/macros/s/AKfycbxkyuluhdtx97TD0f-qwiDxjc370xXHM8kyr8RLByHdfrPmfXKBsuWVnlwg7LkA22uN/exec';
 
-// O componente principal DEVE chamar-se App para o preview funcionar
-export default function App() {
-  const [pedidos, setPedidos] = useState([]);
-  const [carregando, setCarregando] = useState(true);
-  const [erro, setErro] = useState(null);
-  const [busca, setBusca] = useState('');
-  const [segmentoFiltro, setSegmentoFiltro] = useState('Todos');
+    const SEGMENTOS = ['AROMAS DOCE', 'AROMAS SALGADOS', 'NUTRACEUTICOS', 'SORVETES', 'CÁRNEOS', 'LÁCTEOS', 'NUTRIÇÃO ANIMAL'];
+    const STATUS_LIST = ['OP Aberta', 'Finalizando', 'Aguardando MP'];
 
-  // Função para buscar os dados ao vivo do Google Sheets
-  const carregarDados = () => {
-    if(!URL_DA_SUA_API || URL_DA_SUA_API === 'COLE_SEU_LINK_AQUI') {
-      setErro("Por favor, insira a URL da API do Google Sheets no código.");
-      setCarregando(false);
-      return;
+    const STATUS_COLORS = {
+      'OP Aberta': '#3B82F6',
+      'Finalizando': '#10B981',
+      'Aguardando MP': '#F59E0B'
+    };
+
+    // --- COMPONENTES AUXILIARES ---
+    function KpiCard({ title, value, icon, bg, border }) {
+      return (
+        <div className={`${bg} ${border} p-6 rounded-xl shadow-sm flex items-center justify-between transition-all hover:shadow-md`}>
+          <div>
+            <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
+            <p className="text-3xl font-bold text-slate-800">{value}</p>
+          </div>
+          <div className="p-3 bg-slate-50 rounded-lg">{icon}</div>
+        </div>
+      );
     }
 
-    setCarregando(true);
-    setErro(null);
+    function StatusBadge({ status }) {
+      const styles = {
+        'OP Aberta': 'bg-blue-50 text-blue-700 border-blue-200',
+        'Finalizando': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'Aguardando MP': 'bg-amber-50 text-amber-700 border-amber-200'
+      };
+      return <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[status] || 'bg-slate-50 text-slate-700'}`}>{status}</span>;
+    }
 
-    fetch(URL_DA_SUA_API)
-      .then(response => {
-        if (!response.ok) throw new Error('Falha ao carregar dados');
-        return response.json();
-      })
-      .then(data => {
-        setPedidos(data);
-        setCarregando(false);
-      })
-      .catch(err => {
-        setErro("Erro de conexão com a API do Google Sheets. Verifique se publicou o Web App com acesso para 'Qualquer pessoa'.");
-        setCarregando(false);
-      });
-  };
+    // --- COMPONENTE PRINCIPAL ---
+    function App() {
+      const [pedidos, setPedidos] = useState([]);
+      const [carregando, setCarregando] = useState(true);
+      const [erro, setErro] = useState(null);
+      const [busca, setBusca] = useState('');
+      const [segmentoFiltro, setSegmentoFiltro] = useState('Todos');
 
-  // Carrega os dados quando o ecrã abre
-  useEffect(() => {
-    carregarDados();
-    
-    // Atualiza sozinho a cada 5 minutos (300000ms)
-    const intervalo = setInterval(carregarDados, 300000);
-    return () => clearInterval(intervalo);
-  }, []);
+      const carregarDados = () => {
+        setCarregando(true);
+        setErro(null);
 
-  // Filtros
-  const dadosFiltrados = useMemo(() => {
-    return pedidos.filter(pedido => {
-      const matchBusca = (pedido.cliente || '').toLowerCase().includes(busca.toLowerCase()) || 
-                         (pedido.id || '').toLowerCase().includes(busca.toLowerCase());
-      const matchSegmento = segmentoFiltro === 'Todos' || pedido.segmento === segmentoFiltro;
-      return matchBusca && matchSegmento;
-    });
-  }, [pedidos, busca, segmentoFiltro]);
+        fetch(URL_DA_SUA_API)
+          .then(response => {
+            if (!response.ok) throw new Error('Falha ao carregar dados');
+            return response.json();
+          })
+          .then(data => {
+            setPedidos(data);
+            setCarregando(false);
+          })
+          .catch(err => {
+            setErro("Erro de conexão com a API do Google Sheets. Verifique se a folha está pública.");
+            setCarregando(false);
+          });
+      };
 
-  // Cálculos de KPIs
-  const kpis = useMemo(() => {
-    const kpi = { total: dadosFiltrados.length, opAberta: 0, finalizando: 0, aguardandoMP: 0 };
-    dadosFiltrados.forEach(p => {
-      if (p.status === 'OP Aberta') kpi.opAberta++;
-      if (p.status === 'Finalizando') kpi.finalizando++;
-      if (p.status === 'Aguardando MP') kpi.aguardandoMP++;
-    });
-    return kpi;
-  }, [dadosFiltrados]);
+      useEffect(() => {
+        carregarDados();
+        const intervalo = setInterval(carregarDados, 300000); // 5 min
+        return () => clearInterval(intervalo);
+      }, []);
 
-  // Gráfico Rosca
-  const dadosGrafico = useMemo(() => {
-    return [
-      { name: 'OP Aberta', value: kpis.opAberta },
-      { name: 'Finalizando', value: kpis.finalizando },
-      { name: 'Aguardando MP', value: kpis.aguardandoMP },
-    ].filter(d => d.value > 0);
-  }, [kpis]);
+      const dadosFiltrados = useMemo(() => {
+        return pedidos.filter(pedido => {
+          const matchBusca = (pedido.cliente || '').toLowerCase().includes(busca.toLowerCase()) || 
+                             (pedido.id || '').toLowerCase().includes(busca.toLowerCase());
+          const matchSegmento = segmentoFiltro === 'Todos' || pedido.segmento === segmentoFiltro;
+          return matchBusca && matchSegmento;
+        });
+      }, [pedidos, busca, segmentoFiltro]);
 
-  // Heatmap
-  const dadosHeatmap = useMemo(() => {
-    const contagem = {};
-    SEGMENTOS.forEach(seg => contagem[seg] = 0);
-    
-    dadosFiltrados.forEach(p => {
-      if (p.status !== 'Finalizando' && SEGMENTOS.includes(p.segmento)) {
-        contagem[p.segmento] = (contagem[p.segmento] || 0) + 1;
-      }
-    });
+      const kpis = useMemo(() => {
+        const kpi = { total: dadosFiltrados.length, opAberta: 0, finalizando: 0, aguardandoMP: 0 };
+        dadosFiltrados.forEach(p => {
+          if (p.status === 'OP Aberta') kpi.opAberta++;
+          if (p.status === 'Finalizando') kpi.finalizando++;
+          if (p.status === 'Aguardando MP') kpi.aguardandoMP++;
+        });
+        return kpi;
+      }, [dadosFiltrados]);
 
-    const maxCount = Math.max(...Object.values(contagem), 1); 
+      const dadosGrafico = useMemo(() => {
+        return [
+          { name: 'OP Aberta', value: kpis.opAberta },
+          { name: 'Finalizando', value: kpis.finalizando },
+          { name: 'Aguardando MP', value: kpis.aguardandoMP },
+        ].filter(d => d.value > 0);
+      }, [kpis]);
 
-    return Object.entries(contagem).map(([segmento, count]) => {
-      const intensidade = count / maxCount;
-      let bgClass = 'bg-slate-100 text-slate-500';
-      if (count > 0) {
-        if (intensidade <= 0.25) bgClass = 'bg-blue-200 text-blue-900';
-        else if (intensidade <= 0.5) bgClass = 'bg-blue-400 text-white';
-        else if (intensidade <= 0.75) bgClass = 'bg-blue-600 text-white';
-        else bgClass = 'bg-blue-900 text-white';
-      }
-      return { segmento, count, bgClass };
-    }).sort((a, b) => b.count - a.count);
-  }, [dadosFiltrados]);
+      const dadosHeatmap = useMemo(() => {
+        const contagem = {};
+        SEGMENTOS.forEach(seg => contagem[seg] = 0);
+        dadosFiltrados.forEach(p => {
+          if (p.status !== 'Finalizando' && SEGMENTOS.includes(p.segmento)) {
+            contagem[p.segmento] = (contagem[p.segmento] || 0) + 1;
+          }
+        });
+        const maxCount = Math.max(...Object.values(contagem), 1); 
+        return Object.entries(contagem).map(([segmento, count]) => {
+          const intensidade = count / maxCount;
+          let bgClass = 'bg-slate-100 text-slate-500';
+          if (count > 0) {
+            if (intensidade <= 0.25) bgClass = 'bg-blue-200 text-blue-900';
+            else if (intensidade <= 0.5) bgClass = 'bg-blue-400 text-white';
+            else if (intensidade <= 0.75) bgClass = 'bg-blue-600 text-white';
+            else bgClass = 'bg-blue-900 text-white';
+          }
+          return { segmento, count, bgClass };
+        }).sort((a, b) => b.count - a.count);
+      }, [dadosFiltrados]);
 
-  // Barras Empilhadas
-  const dadosStatusPorSegmento = useMemo(() => {
-    const dados = SEGMENTOS.map(segmento => ({ name: segmento, 'OP Aberta': 0, 'Finalizando': 0, 'Aguardando MP': 0 }));
-    dadosFiltrados.forEach(p => {
-      const segmentoIndex = dados.findIndex(d => d.name === p.segmento);
-      if (segmentoIndex !== -1 && STATUS_LIST.includes(p.status)) {
-        dados[segmentoIndex][p.status]++;
-      }
-    });
-    return dados.filter(d => d['OP Aberta'] > 0 || d['Finalizando'] > 0 || d['Aguardando MP'] > 0);
-  }, [dadosFiltrados]);
+      const dadosStatusPorSegmento = useMemo(() => {
+        const dados = SEGMENTOS.map(segmento => ({ name: segmento, 'OP Aberta': 0, 'Finalizando': 0, 'Aguardando MP': 0 }));
+        dadosFiltrados.forEach(p => {
+          const segmentoIndex = dados.findIndex(d => d.name === p.segmento);
+          if (segmentoIndex !== -1 && STATUS_LIST.includes(p.status)) {
+            dados[segmentoIndex][p.status]++;
+          }
+        });
+        return dados.filter(d => d['OP Aberta'] > 0 || d['Finalizando'] > 0 || d['Aguardando MP'] > 0);
+      }, [dadosFiltrados]);
 
-  // Top Clientes
-  const dadosTopClientes = useMemo(() => {
-    const contagem = {};
-    dadosFiltrados.forEach(p => {
-      contagem[p.cliente] = (contagem[p.cliente] || 0) + 1;
-    });
-    return Object.entries(contagem)
-      .map(([cliente, quantidade]) => ({ cliente, quantidade }))
-      .sort((a, b) => b.quantidade - a.quantidade)
-      .slice(0, 5);
-  }, [dadosFiltrados]);
+      const dadosTopClientes = useMemo(() => {
+        const contagem = {};
+        dadosFiltrados.forEach(p => { contagem[p.cliente] = (contagem[p.cliente] || 0) + 1; });
+        return Object.entries(contagem)
+          .map(([cliente, quantidade]) => ({ cliente, quantidade }))
+          .sort((a, b) => b.quantidade - a.quantidade)
+          .slice(0, 5);
+      }, [dadosFiltrados]);
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Cabeçalho */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-              <Package className="w-6 h-6 text-blue-600" />
-              Painel de Amostras
-            </h1>
-            <p className="text-slate-500 text-sm mt-1">Conectado ao vivo com Google Sheets</p>
-          </div>
+      return (
+        <div className="p-4 md:p-8">
+          <div className="max-w-7xl mx-auto space-y-6">
+            
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+              <div>
+                <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
+                  <IconPackage className="w-6 h-6 text-blue-600" />
+                  Painel de Amostras
+                </h1>
+                <p className="text-slate-500 text-sm mt-1">Conectado ao vivo com Google Sheets</p>
+              </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 items-center">
-            {/* Botão de Atualizar Manual */}
-            <button 
-              onClick={carregarDados}
-              disabled={carregando}
-              className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50"
-              title="Atualizar dados agora"
-            >
-              <RefreshCw className={`w-5 h-5 ${carregando ? 'animate-spin' : ''}`} />
-            </button>
+              <div className="flex flex-col sm:flex-row gap-3 items-center">
+                <button onClick={carregarDados} disabled={carregando} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50" title="Atualizar dados agora">
+                  <IconRefreshCw className={`w-5 h-5 ${carregando ? 'animate-spin' : ''}`} />
+                </button>
 
-            <div className="relative">
-              <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input 
-                type="text" 
-                placeholder="Pesquisar cliente ou ID..." 
-                value={busca}
-                onChange={(e) => setBusca(e.target.value)}
-                className="w-full sm:w-64 pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
+                <div className="relative">
+                  <IconSearch className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input type="text" placeholder="Pesquisar cliente ou ID..." value={busca} onChange={(e) => setBusca(e.target.value)} className="w-full sm:w-64 pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm" />
+                </div>
+
+                <div className="relative">
+                  <IconFilter className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <select value={segmentoFiltro} onChange={(e) => setSegmentoFiltro(e.target.value)} className="w-full sm:w-48 pl-10 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm font-medium text-slate-700">
+                    <option value="Todos">Todos os Segmentos</option>
+                    {SEGMENTOS.map(seg => <option key={seg} value={seg}>{seg}</option>)}
+                  </select>
+                </div>
+              </div>
             </div>
 
-            <div className="relative">
-              <Filter className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <select 
-                value={segmentoFiltro}
-                onChange={(e) => setSegmentoFiltro(e.target.value)}
-                className="w-full sm:w-48 pl-10 pr-8 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 appearance-none text-sm font-medium text-slate-700"
-              >
-                <option value="Todos">Todos os Segmentos</option>
-                {SEGMENTOS.map(seg => (
-                  <option key={seg} value={seg}>{seg}</option>
-                ))}
-              </select>
-            </div>
+            {carregando && pedidos.length === 0 && (
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded text-blue-700 flex items-center gap-2 shadow-sm">
+                 <IconRefreshCw className="w-5 h-5 animate-spin" /> A carregar dados da folha de cálculo...
+              </div>
+            )}
+            
+            {erro && (
+              <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded text-red-700 shadow-sm font-medium">⚠️ {erro}</div>
+            )}
+
+            {!erro && pedidos.length > 0 && (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <KpiCard title="Total de Pedidos" value={kpis.total} icon={<IconListFilter className="w-6 h-6 text-slate-500" />} bg="bg-white" border="border-l-4 border-slate-400" />
+                  <KpiCard title="OP Aberta" value={kpis.opAberta} icon={<IconAlertCircle className="w-6 h-6 text-blue-500" />} bg="bg-white" border="border-l-4 border-blue-500" />
+                  <KpiCard title="A Finalizar" value={kpis.finalizando} icon={<IconCheckCircle className="w-6 h-6 text-emerald-500" />} bg="bg-white" border="border-l-4 border-emerald-500" />
+                  <KpiCard title="A Aguardar MP" value={kpis.aguardandoMP} icon={<IconClock className="w-6 h-6 text-amber-500" />} bg="bg-white" border="border-l-4 border-amber-500" />
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                      <IconBarChart3 className="w-5 h-5 text-blue-600" />
+                      Densidade de Pedidos Pendentes
+                    </h2>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {dadosHeatmap.map((item) => (
+                        <div key={item.segmento} className={`${item.bgClass} p-4 rounded-lg flex flex-col justify-between h-28 shadow-sm border border-black/5`}>
+                          <span className="text-xs font-semibold uppercase tracking-wider opacity-90">{item.segmento}</span>
+                          <div className="flex items-end justify-between mt-2">
+                            <span className="text-3xl font-bold">{item.count}</span>
+                            <span className="text-[10px] opacity-75 mb-1">pedidos</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h2 className="text-lg font-bold text-slate-800 mb-6">Status Geral</h2>
+                    <div className="h-64">
+                      {dadosGrafico.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={dadosGrafico} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                              {dadosGrafico.map((entry, index) => <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name]} />)}
+                            </Pie>
+                            <RechartsTooltip formatter={(value) => [`${value} pedidos`, 'Volume']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                            <Legend verticalAlign="bottom" height={36} iconType="circle" />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      ) : (<div className="w-full h-full flex items-center justify-center text-slate-400">Sem dados</div>)}
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
+                     <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
+                      <IconTrendingUp className="w-5 h-5 text-blue-600" />
+                      Andamento por Segmento
+                    </h2>
+                    <div className="h-[300px]">
+                      {dadosStatusPorSegmento.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={dadosStatusPorSegmento} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                            <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} angle={-25} textAnchor="end" axisLine={false} tickLine={false} />
+                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} />
+                            <RechartsTooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                            <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
+                            <Bar dataKey="OP Aberta" stackId="a" fill={STATUS_COLORS['OP Aberta']} radius={[0, 0, 4, 4]} />
+                            <Bar dataKey="Aguardando MP" stackId="a" fill={STATUS_COLORS['Aguardando MP']} />
+                            <Bar dataKey="Finalizando" stackId="a" fill={STATUS_COLORS['Finalizando']} radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                       ) : (<div className="w-full h-full flex items-center justify-center text-slate-400">Sem dados</div>)}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+                    <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
+                      <IconUsers className="w-5 h-5 text-blue-600" />
+                      Top 5 Clientes
+                    </h2>
+                    <div className="h-[300px]">
+                      {dadosTopClientes.length > 0 ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={dadosTopClientes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
+                            <XAxis type="number" hide />
+                            <YAxis dataKey="cliente" type="category" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#475569', fontWeight: 500}} width={80} />
+                            <RechartsTooltip cursor={{fill: '#f1f5f9'}} formatter={(value) => [`${value} pedidos`, 'Volume']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                            <Bar dataKey="quantidade" fill="#64748B" radius={[0, 4, 4, 0]} barSize={24} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (<div className="w-full h-full flex items-center justify-center text-slate-400">Sem dados</div>)}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mt-6">
+                  <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+                    <h2 className="text-lg font-bold text-slate-800">Listagem ao Vivo ({dadosFiltrados.length})</h2>
+                  </div>
+                  <div className="overflow-x-auto max-h-[500px]">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="sticky top-0 bg-white z-10 shadow-sm">
+                        <tr className="text-slate-500 text-sm border-b border-slate-200">
+                          <th className="p-4 font-semibold">ID</th>
+                          <th className="p-4 font-semibold">Cliente</th>
+                          <th className="p-4 font-semibold">Segmento</th>
+                          <th className="p-4 font-semibold">Entrada</th>
+                          <th className="p-4 font-semibold">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dadosFiltrados.length > 0 ? (
+                          dadosFiltrados.map((pedido, i) => (
+                            <tr key={i} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                              <td className="p-4 text-sm font-medium text-slate-700">{pedido.id}</td>
+                              <td className="p-4 text-sm text-slate-700 font-semibold">{pedido.cliente}</td>
+                              <td className="p-4 text-sm"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-medium border border-slate-200">{pedido.segmento}</span></td>
+                              <td className="p-4 text-sm text-slate-600">{pedido.dataEntrada}</td>
+                              <td className="p-4"><StatusBadge status={pedido.status} /></td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr><td colSpan="5" className="p-8 text-center text-slate-400">Nenhum pedido encontrado.</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
+      );
+    }
 
-        {/* Mensagens de Carregamento e Erro */}
-        {carregando && pedidos.length === 0 && (
-          <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded text-blue-700 flex items-center gap-2 shadow-sm">
-             <RefreshCw className="w-5 h-5 animate-spin" /> A carregar dados da folha de cálculo...
-          </div>
-        )}
-        
-        {erro && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded text-red-700 shadow-sm font-medium">
-             ⚠️ {erro}
-          </div>
-        )}
-
-        {/* O resto do Dashboard só renderiza se tivermos carregado a base de dados */}
-        {!erro && pedidos.length > 0 && (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <KpiCard title="Total de Pedidos" value={kpis.total} icon={<ListFilter className="w-6 h-6 text-slate-500" />} bg="bg-white" border="border-l-4 border-slate-400" />
-              <KpiCard title="OP Aberta" value={kpis.opAberta} icon={<AlertCircle className="w-6 h-6 text-blue-500" />} bg="bg-white" border="border-l-4 border-blue-500" />
-              <KpiCard title="A Finalizar" value={kpis.finalizando} icon={<CheckCircle className="w-6 h-6 text-emerald-500" />} bg="bg-white" border="border-l-4 border-emerald-500" />
-              <KpiCard title="A Aguardar MP" value={kpis.aguardandoMP} icon={<Clock className="w-6 h-6 text-amber-500" />} bg="bg-white" border="border-l-4 border-amber-500" />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Heatmap */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
-                  Densidade de Pedidos Pendentes (OP Aberta e A Aguardar MP)
-                </h2>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {dadosHeatmap.map((item) => (
-                    <div key={item.segmento} className={`${item.bgClass} p-4 rounded-lg flex flex-col justify-between h-28 shadow-sm border border-black/5`}>
-                      <span className="text-xs font-semibold uppercase tracking-wider opacity-90">{item.segmento}</span>
-                      <div className="flex items-end justify-between mt-2">
-                        <span className="text-3xl font-bold">{item.count}</span>
-                        <span className="text-[10px] opacity-75 mb-1">pedidos</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rosca */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <h2 className="text-lg font-bold text-slate-800 mb-6">Status Geral</h2>
-                <div className="h-64">
-                  {dadosGrafico.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={dadosGrafico} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                          {dadosGrafico.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={STATUS_COLORS[entry.name]} />
-                          ))}
-                        </Pie>
-                        <RechartsTooltip formatter={(value) => [`${value} pedidos`, 'Volume']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                        <Legend verticalAlign="bottom" height={36} iconType="circle" />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  ) : (<div className="w-full h-full flex items-center justify-center text-slate-400">Sem dados</div>)}
-                </div>
-              </div>
-              
-              {/* Barras Empilhadas */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100 lg:col-span-2">
-                 <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-6">
-                  <TrendingUp className="w-5 h-5 text-blue-600" />
-                  Andamento por Segmento
-                </h2>
-                <div className="h-[300px]">
-                  {dadosStatusPorSegmento.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dadosStatusPorSegmento} margin={{ top: 10, right: 10, left: -20, bottom: 25 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="name" tick={{fontSize: 10}} interval={0} angle={-25} textAnchor="end" axisLine={false} tickLine={false} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fontSize: 12}} />
-                        <RechartsTooltip cursor={{fill: '#f1f5f9'}} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                        <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{ fontSize: '12px' }}/>
-                        <Bar dataKey="OP Aberta" stackId="a" fill={STATUS_COLORS['OP Aberta']} radius={[0, 0, 4, 4]} />
-                        <Bar dataKey="Aguardando MP" stackId="a" fill={STATUS_COLORS['Aguardando MP']} />
-                        <Bar dataKey="Finalizando" stackId="a" fill={STATUS_COLORS['Finalizando']} radius={[4, 4, 0, 0]} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                   ) : (<div className="w-full h-full flex items-center justify-center text-slate-400">Sem dados</div>)}
-                </div>
-              </div>
-
-              {/* Top Clientes */}
-              <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-100">
-                <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-4">
-                  <Users className="w-5 h-5 text-blue-600" />
-                  Top 5 Clientes
-                </h2>
-                <div className="h-[300px]">
-                  {dadosTopClientes.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={dadosTopClientes} layout="vertical" margin={{ top: 0, right: 20, left: 0, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e2e8f0" />
-                        <XAxis type="number" hide />
-                        <YAxis dataKey="cliente" type="category" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#475569', fontWeight: 500}} width={80} />
-                        <RechartsTooltip cursor={{fill: '#f1f5f9'}} formatter={(value) => [`${value} pedidos`, 'Volume']} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                        <Bar dataKey="quantidade" fill="#64748B" radius={[0, 4, 4, 0]} barSize={24} />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  ) : (<div className="w-full h-full flex items-center justify-center text-slate-400">Sem dados</div>)}
-                </div>
-              </div>
-            </div>
-            
-            {/* Tabela */}
-            <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden mt-6">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                <h2 className="text-lg font-bold text-slate-800">Listagem ao Vivo ({dadosFiltrados.length})</h2>
-              </div>
-              <div className="overflow-x-auto max-h-[500px]">
-                <table className="w-full text-left border-collapse">
-                  <thead className="sticky top-0 bg-white z-10 shadow-sm">
-                    <tr className="text-slate-500 text-sm border-b border-slate-200">
-                      <th className="p-4 font-semibold">ID</th>
-                      <th className="p-4 font-semibold">Cliente</th>
-                      <th className="p-4 font-semibold">Segmento</th>
-                      <th className="p-4 font-semibold">Entrada</th>
-                      <th className="p-4 font-semibold">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dadosFiltrados.length > 0 ? (
-                      dadosFiltrados.map((pedido, i) => (
-                        <tr key={i} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                          <td className="p-4 text-sm font-medium text-slate-700">{pedido.id}</td>
-                          <td className="p-4 text-sm text-slate-700 font-semibold">{pedido.cliente}</td>
-                          <td className="p-4 text-sm"><span className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-medium border border-slate-200">{pedido.segmento}</span></td>
-                          <td className="p-4 text-sm text-slate-600">{pedido.dataEntrada}</td>
-                          <td className="p-4"><StatusBadge status={pedido.status} /></td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr><td colSpan="5" className="p-8 text-center text-slate-400">Nenhum pedido encontrado.</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function KpiCard({ title, value, icon, bg, border }) {
-  return (
-    <div className={`${bg} ${border} p-6 rounded-xl shadow-sm flex items-center justify-between transition-all hover:shadow-md`}>
-      <div>
-        <p className="text-sm font-medium text-slate-500 mb-1">{title}</p>
-        <p className="text-3xl font-bold text-slate-800">{value}</p>
-      </div>
-      <div className="p-3 bg-slate-50 rounded-lg">{icon}</div>
-    </div>
-  );
-}
-
-function StatusBadge({ status }) {
-  const styles = {
-    'OP Aberta': 'bg-blue-50 text-blue-700 border-blue-200',
-    'Finalizando': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    'Aguardando MP': 'bg-amber-50 text-amber-700 border-amber-200'
-  };
-  return <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${styles[status]}`}>{status}</span>;
-}
+    // --- INICIALIZAÇÃO DO REACT ---
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
