@@ -92,10 +92,11 @@
     };
 
     const STATUS_COLORS = {
+      'Em Fila': '#94A3B8',          // Slate (Cinza Médio)
       'OPs Abertas': '#4F46E5',      // Indigo Moderno
       'Em Andamento': '#F59E0B',     // Amber
       'Finalizando': '#10B981',      // Emerald
-      'Entregue': '#64748B'          // Slate
+      'Entregue': '#1E293B'          // Slate Escuro
     };
 
     function KpiCard({ title, value, icon, border, subtitle }) {
@@ -115,10 +116,11 @@
 
     function StatusBadge({ status }) {
       const styles = {
+        'Em Fila': 'bg-slate-100 text-slate-600 border-slate-200',
         'OPs Abertas': 'bg-indigo-50 text-indigo-700 border-indigo-200',
-        'Finalizando': 'bg-emerald-50 text-emerald-700 border-emerald-200',
         'Em Andamento': 'bg-amber-50 text-amber-700 border-amber-200',
-        'Entregue': 'bg-slate-50 text-slate-600 border-slate-200'
+        'Finalizando': 'bg-emerald-50 text-emerald-700 border-emerald-200',
+        'Entregue': 'bg-slate-800 text-slate-100 border-slate-700'
       };
       return <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border whitespace-nowrap ${styles[status] || 'bg-slate-50 text-slate-700'}`}>{status}</span>;
     }
@@ -159,11 +161,12 @@
               const segmentoMapeado = MAPA_NORMALIZACAO[segmentoChave] || segmentoOriginal;
 
               const rawStatus = String(row.status || '').trim();
-              let statusItem = 'Em Andamento';
+              let statusItem = 'Em Fila';
               if (rawStatus === 'OP Aberta' || rawStatus === 'OPs Abertas') statusItem = 'OPs Abertas';
+              else if (rawStatus === 'Em Andamento') statusItem = 'Em Andamento';
               else if (rawStatus === 'Finalizando') statusItem = 'Finalizando';
               else if (rawStatus === 'Entregue') statusItem = 'Entregue';
-              else statusItem = 'Em Andamento'; // Mapeia vazios e "Aguardando MP" automaticamente
+              else statusItem = 'Em Fila'; // Mapeia vazios e itens novos para "Em Fila"
 
               const obsValor = String(row.observacao || '').trim();
               const produtoNome = String(row.produto || 'Amostra').trim();
@@ -208,6 +211,8 @@
                   pedidoExistente.statusGeral = 'Em Andamento';
                 } else if (statusList.includes('Finalizando')) {
                   pedidoExistente.statusGeral = 'Finalizando';
+                } else if (statusList.includes('Em Fila')) {
+                  pedidoExistente.statusGeral = 'Em Fila';
                 } else {
                   pedidoExistente.statusGeral = 'Entregue';
                 }
@@ -247,8 +252,9 @@
 
       // Métricas Consolidadas (Um ID de pedido conta exatamente como 1 unidade)
       const kpis = useMemo(() => {
-        const kpi = { total: dadosFiltrados.length, opsAbertas: 0, finalizando: 0, emAndamento: 0, entregue: 0 };
+        const kpi = { total: dadosFiltrados.length, emFila: 0, opsAbertas: 0, finalizando: 0, emAndamento: 0, entregue: 0 };
         dadosFiltrados.forEach(p => {
+          if (p.statusGeral === 'Em Fila') kpi.emFila++;
           if (p.statusGeral === 'OPs Abertas') kpi.opsAbertas++;
           if (p.statusGeral === 'Finalizando') kpi.finalizando++;
           if (p.statusGeral === 'Em Andamento') kpi.emAndamento++;
@@ -267,6 +273,7 @@
 
       const dadosGraficoPie = useMemo(() => {
         return [
+          { name: 'Em Fila', value: kpis.emFila },
           { name: 'OPs Abertas', value: kpis.opsAbertas },
           { name: 'Em Andamento', value: kpis.emAndamento },
           { name: 'Finalizando', value: kpis.finalizando },
@@ -360,13 +367,14 @@
           {!erro && pedidos.length > 0 && (
             <main className="max-w-7xl mx-auto w-full px-6 mt-6 space-y-6">
               
-              {/* CARTÕES DE KPI */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-                <KpiCard title="Total de Pedidos" value={kpis.total} icon={<IconListFilter className="w-5 h-5 text-slate-600" />} border="bg-slate-50 border-slate-100 text-slate-600" subtitle="Filtrados no painel" />
+              {/* CARTÕES DE KPI (Atualizado para 6 colunas na tela grande) */}
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                <KpiCard title="Total de Pedidos" value={kpis.total} icon={<IconListFilter className="w-5 h-5 text-slate-600" />} border="bg-slate-50 border-slate-100 text-slate-600" subtitle="Listados" />
+                <KpiCard title="Em Fila" value={kpis.emFila} icon={<IconClock className="w-5 h-5 text-slate-500" />} border="bg-slate-100 border-slate-200 text-slate-600" subtitle="Aguardando ação" />
                 <KpiCard title="OPs Abertas" value={kpis.opsAbertas} icon={<IconAlertCircle className="w-5 h-5 text-indigo-600" />} border="bg-indigo-50 border-indigo-100 text-indigo-600" subtitle="Produção iniciada" />
-                <KpiCard title="Em Andamento" value={kpis.emAndamento} icon={<IconClock className="w-5 h-5 text-amber-600" />} border="bg-amber-50 border-amber-100 text-amber-600" subtitle="Processando lote" />
+                <KpiCard title="Em Andamento" value={kpis.emAndamento} icon={<IconRefreshCw className="w-5 h-5 text-amber-600" />} border="bg-amber-50 border-amber-100 text-amber-600" subtitle="Processando lote" />
                 <KpiCard title="Finalizando" value={kpis.finalizando} icon={<IconCheckCircle className="w-5 h-5 text-emerald-600" />} border="bg-emerald-50 border-emerald-100 text-emerald-600" subtitle="Fase conclusiva" />
-                <KpiCard title="Entregue" value={kpis.entregue} icon={<IconPackage className="w-5 h-5 text-slate-600" />} border="bg-slate-100 border-slate-200 text-slate-600" subtitle="Lote concluído" />
+                <KpiCard title="Entregue" value={kpis.entregue} icon={<IconPackage className="w-5 h-5 text-slate-700" />} border="bg-slate-200 border-slate-300 text-slate-800" subtitle="Lote concluído" />
               </div>
 
               {/* GRÁFICOS ANALÍTICOS */}
@@ -466,6 +474,7 @@
                         className="w-full sm:w-40 pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none shadow-sm"
                       >
                         <option value="Todos">Status: Todos</option>
+                        <option value="Em Fila">Em Fila</option>
                         <option value="OPs Abertas">OPs Abertas</option>
                         <option value="Em Andamento">Em Andamento</option>
                         <option value="Finalizando">Finalizando</option>
@@ -599,17 +608,19 @@
                   </h4>
                   
                   {pedidoSelecionado.itens.map((item, idx) => {
-                    let progresso = "w-1/4 bg-indigo-500";
-                    if (item.status === "Em Andamento") progresso = "w-2/4 bg-amber-500";
-                    if (item.status === "Finalizando") progresso = "w-3/4 bg-emerald-500";
-                    if (item.status === "Entregue") progresso = "w-full bg-slate-500";
+                    let progresso = "w-1/5 bg-slate-400";
+                    if (item.status === "OPs Abertas") progresso = "w-2/5 bg-indigo-500";
+                    if (item.status === "Em Andamento") progresso = "w-3/5 bg-amber-500";
+                    if (item.status === "Finalizando") progresso = "w-4/5 bg-emerald-500";
+                    if (item.status === "Entregue") progresso = "w-full bg-slate-800";
 
                     return (
                       <div key={item.idLinha || idx} className="bg-white p-4 rounded-xl border border-slate-150 shadow-sm relative overflow-hidden transition-all hover:border-indigo-200">
                         <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+                          item.status === 'Em Fila' ? 'bg-slate-400' :
                           item.status === 'OPs Abertas' ? 'bg-indigo-500' :
                           item.status === 'Em Andamento' ? 'bg-amber-500' : 
-                          item.status === 'Finalizando' ? 'bg-emerald-500' : 'bg-slate-400'
+                          item.status === 'Finalizando' ? 'bg-emerald-500' : 'bg-slate-800'
                         }`} />
                         
                         {/* CÓDIGO E DESCRIÇÃO DO PRODUTO (Export Colunas J e K) */}
