@@ -92,10 +92,10 @@
     };
 
     const STATUS_COLORS = {
-      'OP Aberta': '#4F46E5',      // Indigo Moderno
-      'Aguardando MP': '#F59E0B',  // Amber
-      'Finalizando': '#10B981',     // Emerald
-      'Entregue': '#64748B'        // Slate
+      'OPs Abertas': '#4F46E5',      // Indigo Moderno
+      'Em Andamento': '#F59E0B',     // Amber
+      'Finalizando': '#10B981',      // Emerald
+      'Entregue': '#64748B'          // Slate
     };
 
     function KpiCard({ title, value, icon, border, subtitle }) {
@@ -115,9 +115,9 @@
 
     function StatusBadge({ status }) {
       const styles = {
-        'OP Aberta': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+        'OPs Abertas': 'bg-indigo-50 text-indigo-700 border-indigo-200',
         'Finalizando': 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        'Aguardando MP': 'bg-amber-50 text-amber-700 border-amber-200',
+        'Em Andamento': 'bg-amber-50 text-amber-700 border-amber-200',
         'Entregue': 'bg-slate-50 text-slate-600 border-slate-200'
       };
       return <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border whitespace-nowrap ${styles[status] || 'bg-slate-50 text-slate-700'}`}>{status}</span>;
@@ -158,7 +158,13 @@
 
               const segmentoMapeado = MAPA_NORMALIZACAO[segmentoChave] || segmentoOriginal;
 
-              const statusItem = String(row.status || 'Aguardando MP').trim();
+              const rawStatus = String(row.status || '').trim();
+              let statusItem = 'Em Andamento';
+              if (rawStatus === 'OP Aberta' || rawStatus === 'OPs Abertas') statusItem = 'OPs Abertas';
+              else if (rawStatus === 'Finalizando') statusItem = 'Finalizando';
+              else if (rawStatus === 'Entregue') statusItem = 'Entregue';
+              else statusItem = 'Em Andamento'; // Mapeia vazios e "Aguardando MP" automaticamente
+
               const obsValor = String(row.observacao || '').trim();
               const produtoNome = String(row.produto || 'Amostra').trim();
               const descricaoItem = String(row.descricao || '').trim();
@@ -196,10 +202,10 @@
                 
                 // Critério de criticidade de status do pedido unificado:
                 const statusList = pedidoExistente.itens.map(i => i.status);
-                if (statusList.includes('OP Aberta')) {
-                  pedidoExistente.statusGeral = 'OP Aberta';
-                } else if (statusList.includes('Aguardando MP')) {
-                  pedidoExistente.statusGeral = 'Aguardando MP';
+                if (statusList.includes('OPs Abertas')) {
+                  pedidoExistente.statusGeral = 'OPs Abertas';
+                } else if (statusList.includes('Em Andamento')) {
+                  pedidoExistente.statusGeral = 'Em Andamento';
                 } else if (statusList.includes('Finalizando')) {
                   pedidoExistente.statusGeral = 'Finalizando';
                 } else {
@@ -241,11 +247,11 @@
 
       // Métricas Consolidadas (Um ID de pedido conta exatamente como 1 unidade)
       const kpis = useMemo(() => {
-        const kpi = { total: dadosFiltrados.length, opAberta: 0, finalizando: 0, aguardandoMP: 0, entregue: 0 };
+        const kpi = { total: dadosFiltrados.length, opsAbertas: 0, finalizando: 0, emAndamento: 0, entregue: 0 };
         dadosFiltrados.forEach(p => {
-          if (p.statusGeral === 'OP Aberta') kpi.opAberta++;
+          if (p.statusGeral === 'OPs Abertas') kpi.opsAbertas++;
           if (p.statusGeral === 'Finalizando') kpi.finalizando++;
-          if (p.statusGeral === 'Aguardando MP') kpi.aguardandoMP++;
+          if (p.statusGeral === 'Em Andamento') kpi.emAndamento++;
           if (p.statusGeral === 'Entregue') kpi.entregue++;
         });
         return kpi;
@@ -261,8 +267,8 @@
 
       const dadosGraficoPie = useMemo(() => {
         return [
-          { name: 'OP Aberta', value: kpis.opAberta },
-          { name: 'Aguardando MP', value: kpis.aguardandoMP },
+          { name: 'OPs Abertas', value: kpis.opsAbertas },
+          { name: 'Em Andamento', value: kpis.emAndamento },
           { name: 'Finalizando', value: kpis.finalizando },
           { name: 'Entregue', value: kpis.entregue },
         ].filter(d => d.value > 0);
@@ -357,8 +363,8 @@
               {/* CARTÕES DE KPI */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <KpiCard title="Total de Pedidos" value={kpis.total} icon={<IconListFilter className="w-5 h-5 text-slate-600" />} border="bg-slate-50 border-slate-100 text-slate-600" subtitle="Filtrados no painel" />
-                <KpiCard title="OP Aberta" value={kpis.opAberta} icon={<IconAlertCircle className="w-5 h-5 text-indigo-600" />} border="bg-indigo-50 border-indigo-100 text-indigo-600" subtitle="Produção iniciada" />
-                <KpiCard title="Aguardando MP" value={kpis.aguardandoMP} icon={<IconClock className="w-5 h-5 text-amber-600" />} border="bg-amber-50 border-amber-100 text-amber-600" subtitle="Falta Matéria-Prima" />
+                <KpiCard title="OPs Abertas" value={kpis.opsAbertas} icon={<IconAlertCircle className="w-5 h-5 text-indigo-600" />} border="bg-indigo-50 border-indigo-100 text-indigo-600" subtitle="Produção iniciada" />
+                <KpiCard title="Em Andamento" value={kpis.emAndamento} icon={<IconClock className="w-5 h-5 text-amber-600" />} border="bg-amber-50 border-amber-100 text-amber-600" subtitle="Processando lote" />
                 <KpiCard title="Finalizando" value={kpis.finalizando} icon={<IconCheckCircle className="w-5 h-5 text-emerald-600" />} border="bg-emerald-50 border-emerald-100 text-emerald-600" subtitle="Fase conclusiva" />
                 <KpiCard title="Entregue" value={kpis.entregue} icon={<IconPackage className="w-5 h-5 text-slate-600" />} border="bg-slate-100 border-slate-200 text-slate-600" subtitle="Lote concluído" />
               </div>
@@ -460,8 +466,8 @@
                         className="w-full sm:w-40 pl-3 pr-8 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 appearance-none shadow-sm"
                       >
                         <option value="Todos">Status: Todos</option>
-                        <option value="OP Aberta">OP Aberta</option>
-                        <option value="Aguardando MP">Aguardando MP</option>
+                        <option value="OPs Abertas">OPs Abertas</option>
+                        <option value="Em Andamento">Em Andamento</option>
                         <option value="Finalizando">Finalizando</option>
                         <option value="Entregue">Entregue</option>
                       </select>
@@ -594,15 +600,15 @@
                   
                   {pedidoSelecionado.itens.map((item, idx) => {
                     let progresso = "w-1/4 bg-indigo-500";
-                    if (item.status === "Aguardando MP") progresso = "w-2/4 bg-amber-500";
+                    if (item.status === "Em Andamento") progresso = "w-2/4 bg-amber-500";
                     if (item.status === "Finalizando") progresso = "w-3/4 bg-emerald-500";
                     if (item.status === "Entregue") progresso = "w-full bg-slate-500";
 
                     return (
                       <div key={item.idLinha || idx} className="bg-white p-4 rounded-xl border border-slate-150 shadow-sm relative overflow-hidden transition-all hover:border-indigo-200">
                         <div className={`absolute top-0 left-0 right-0 h-1.5 ${
-                          item.status === 'OP Aberta' ? 'bg-indigo-500' :
-                          item.status === 'Aguardando MP' ? 'bg-amber-500' : 
+                          item.status === 'OPs Abertas' ? 'bg-indigo-500' :
+                          item.status === 'Em Andamento' ? 'bg-amber-500' : 
                           item.status === 'Finalizando' ? 'bg-emerald-500' : 'bg-slate-400'
                         }`} />
                         
@@ -642,7 +648,7 @@
                           </div>
                           <div className="flex justify-between items-center text-[10px]">
                             <span className="text-slate-400 font-semibold">Quantidade solicitada:</span>
-                            <span className="text-slate-700 font-bold">{item.quantidade} unidade(s)</span>
+                            <span className="text-slate-700 font-bold">{item.quantidade} kg</span>
                           </div>
                           {item.dataEntrega && item.dataEntrega !== "-" && (
                             <div className="flex justify-between items-center text-[10px]">
